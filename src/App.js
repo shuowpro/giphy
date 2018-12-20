@@ -1,35 +1,32 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
 import ImageFlow from './ImageFlow';
 import axios from 'axios';
+import { debounce } from 'lodash';
 import './App.css';
 
 class App extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      searchText: '',
-      imageAddrs: [],
-    };
-    this.timeout = null;
+  state = {
+    searchText: '',
+    imageAddrs: [],
+  }
+
+  componentWillUnmount() {
+    this.handleFetchImages.cancel();
   }
 
   handleUpdateSearchText = event => {
+    const searchText = event.target.value;
     this.setState({
-      searchText: event.target.value,
+      searchText,
     });
-    clearTimeout(this.timeout);
-    this.timeout = setTimeout(searchText => {
-      axios.get(`https://api.giphy.com/v1/gifs/search?api_key=YWvK8etOQgpDuzevIRng2Np91aSn38PF&q=${searchText}`)
-      .then(res => res.data.data)
-      .then(res => res.map(data => data.images.original.url))
-      .then(addr => {
-        this.setState({
-          imageAddrs: addr,
-        });
-      });
-    }, 1000, event.target.value);
+    this.handleFetchImages(searchText);
   }
+
+  handleFetchImages = debounce(async searchText => {
+    const res = await axios.get(`https://api.giphy.com/v1/gifs/search?api_key=YWvK8etOQgpDuzevIRng2Np91aSn38PF&q=${searchText}`);
+    const addrs = res.data.data.map(({ images }) => images.original.url);
+    this.setState({ imageAddrs: addrs });
+  }, 1000)
   
   render() {
     const { searchText, imageAddrs } = this.state;
